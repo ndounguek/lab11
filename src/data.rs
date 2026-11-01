@@ -31,13 +31,17 @@ pub enum ShipLineError {
     BadLength(String),
     LengthOutOfRange(usize),
 }
-
-// TODO (Task 3): one sentence per variant, written so main can print
-// "data/fleet.txt line 10: <your sentence>". Example: "has length 1, outside 2-5".
-// Use MIN_SHIP and MAX_SHIP in the message instead of typing 2 and 5.
+// One sentence per variant, so main can print "data/fleet.txt line 10: <sentence>".
 impl fmt::Display for ShipLineError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TODO: {self:?}")
+        match self {
+            ShipLineError::MissingComma => write!(f, "expected one comma, like Carrier,5"),
+            ShipLineError::EmptyName => write!(f, "the ship has no name"),
+            ShipLineError::BadLength(text) => write!(f, "length \"{text}\" is not a whole number"),
+            ShipLineError::LengthOutOfRange(n) => {
+                write!(f, "has length {n}, outside {MIN_SHIP}-{MAX_SHIP}")
+            }
+        }
     }
 }
 
@@ -139,14 +143,15 @@ pub fn parse_ship_line(line: &str) -> Result<ShipSpec, ShipLineError> {
     }
     let name = parts[0].trim();
     if name.is_empty() {
-        return Err(ShipLineError::MissingComma);
+        return Err(ShipLineError::EmptyName);
     }
-    let length = match parts[1].trim().parse::<usize>() {
+    let length_text = parts[1].trim();
+    let length = match length_text.parse::<usize>() {
         Ok(n) => n,
-        Err(_) => return Err(ShipLineError::MissingComma),
+        Err(_) => return Err(ShipLineError::BadLength(length_text.to_string())),
     };
     if length < MIN_SHIP || length > MAX_SHIP {
-        return Err(ShipLineError::MissingComma);
+        return Err(ShipLineError::LengthOutOfRange(length));
     }
     Ok(ShipSpec {
         name: name.to_string(),
