@@ -72,30 +72,6 @@ impl fmt::Display for FleetError {
     }
 }
 
-// True if a ship of this length starting at (row, col) stays on the board
-// and covers only water. TODO (Task 2): fold this into `place` and delete it.
-fn can_place(board: &Board, row: usize, col: usize, length: usize, horizontal: bool) -> bool {
-    if row >= SIZE || col >= SIZE {
-        return false;
-    }
-    if horizontal && col + length > SIZE {
-        return false;
-    }
-    if !horizontal && row + length > SIZE {
-        return false;
-    }
-    for i in 0..length {
-        let (r, c) = if horizontal {
-            (row, col + i)
-        } else {
-            (row + i, col)
-        };
-        if board[r][c] != Cell::Water {
-            return false;
-        }
-    }
-    true
-}
 
 // Place a ship starting at (row, col).
 // TODO (Task 2): check the edge first and return Err(PlaceError::OutOfBounds);
@@ -109,15 +85,27 @@ pub fn place(
     length: usize,
     horizontal: bool,
 ) -> Result<(), PlaceError> {
-    if !can_place(board, row, col, length, horizontal) {
+    // 1. Edge: every square of the ship must be on the board.
+    if row >= SIZE || col >= SIZE {
         return Err(PlaceError::OutOfBounds);
     }
+    if horizontal && col + length > SIZE {
+        return Err(PlaceError::OutOfBounds);
+    }
+    if !horizontal && row + length > SIZE {
+        return Err(PlaceError::OutOfBounds);
+    }
+    // 2. Overlap: every square must still be water.
     for i in 0..length {
-        if horizontal {
-            board[row][col + i] = Cell::Ship;
-        } else {
-            board[row + i][col] = Cell::Ship;
+        let (r, c) = if horizontal { (row, col + i) } else { (row + i, col) };
+        if board[r][c] != Cell::Water {
+            return Err(PlaceError::Overlap);
         }
+    }
+    // 3. Both checks passed: now change the board.
+    for i in 0..length {
+        let (r, c) = if horizontal { (row, col + i) } else { (row + i, col) };
+        board[r][c] = Cell::Ship;
     }
     Ok(())
 }
